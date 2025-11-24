@@ -119,18 +119,6 @@ class JobApplicationResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class AppointmentResponse(BaseModel):
-    appointment_id: int
-    appointment_date: date
-    appointment_time: time
-    work_hours: int
-    status: AppointmentStatus
-    member_name: str
-    member_phone: str
-    member_email: str
-    member_city: str
-
-    model_config = ConfigDict(from_attributes=True)
 
 # Job
 class JobCreate(BaseModel):
@@ -181,19 +169,73 @@ class JobApplicationDetailResponse(BaseModel):
     caregiver_user_id: int
     job_id: int
     date_applied: date
-    # Job details
     required_caregiving_type: str
     other_requirements: Optional[str] = None
     date_posted: date
-    # Member details
     member_user_id: int
     member_name: str
     member_city: str
     member_email: str
     member_phone: str
-    # Caregiver details
     caregiver_name: str
     caregiver_email: str
     caregiver_phone: str
     caregiver_city: str
     hourly_rate: Decimal
+
+
+# Appointment
+class AppointmentCreate(BaseModel):
+    caregiver_user_id: int
+    appointment_date: date
+    appointment_time: time
+    work_hours: float = Field(..., gt=0)
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentUpdate(BaseModel):
+    """Model for updating an appointment"""
+    appointment_date: Optional[date] = None
+    appointment_time: Optional[time] = None
+    work_hours: Optional[float] = Field(None, gt=0)
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentResponse(BaseModel):
+    appointment_id: int
+    appointment_date: date
+    appointment_time: time
+    work_hours: float
+    status: AppointmentStatus
+    member_name: str
+    member_phone: str
+    member_email: str
+    member_city: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentDetailResponse(BaseModel):
+    appointment_id: int
+    appointment_date: date
+    appointment_time: time
+    work_hours: float
+    status: AppointmentStatus
+    caregiver_user_id: int
+    member_user_id: int
+    caregiver_name: str
+    caregiver_email: str
+    caregiver_phone: str
+    caregiver_city: str
+    hourly_rate: float
+    caregiving_type: str
+    member_name: str
+    member_email: str
+    member_phone: str
+    member_city: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentStatusUpdate(BaseModel):
+    status: AppointmentStatus
+
+    model_config = ConfigDict(from_attributes=True)
