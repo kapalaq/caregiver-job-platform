@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import date, time, datetime
 from decimal import Decimal
 import enum
@@ -22,6 +22,12 @@ def get_db():
 
 def get_engine():
     return engine
+
+def row_to_dict(row) -> Dict[str, Any]:
+    """Convert SQLAlchemy row to dictionary"""
+    if row is None:
+        return None
+    return dict(row._mapping)
 
 # Enums
 class CaregivingType(str, enum.Enum):
@@ -44,6 +50,7 @@ class AppointmentStatus(str, enum.Enum):
 
 
 # API Validation Schemas
+# Caregivers
 class UserBase(BaseModel):
     email: EmailStr
     given_name: str
@@ -124,3 +131,47 @@ class AppointmentResponse(BaseModel):
     member_city: str
 
     model_config = ConfigDict(from_attributes=True)
+
+# Job
+class JobCreate(BaseModel):
+    required_caregiving_type: CaregivingType
+    other_requirements: Optional[str] = None
+
+class JobUpdate(BaseModel):
+    required_caregiving_type: Optional[CaregivingType] = None
+    other_requirements: Optional[str] = None
+
+class JobResponse(BaseModel):
+    job_id: int
+    member_user_id: int
+    required_caregiving_type: str
+    other_requirements: Optional[str] = None
+    date_posted: date
+    member_name: str
+    member_city: str
+    member_email: str
+    member_phone: str
+
+class JobListResponse(BaseModel):
+    job_id: int
+    required_caregiving_type: str
+    other_requirements: Optional[str] = None
+    date_posted: date
+    member_city: str
+
+class JobApplicationCreate(BaseModel):
+    caregiver_user_id: int
+
+class ApplicantResponse(BaseModel):
+    caregiver_user_id: int
+    given_name: str
+    surname: str
+    email: str
+    phone_number: str
+    city: str
+    gender: str
+    caregiving_type: str
+    hourly_rate: Decimal
+    photo: Optional[str] = None
+    profile_description: Optional[str] = None
+    date_applied: date

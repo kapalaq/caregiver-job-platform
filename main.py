@@ -9,12 +9,7 @@ from typing import Optional, List
 from pathlib import Path
 
 
-from database.models import (
-    get_db,
-    CaregivingType, Gender, AppointmentStatus,
-    CaregiverResponse, CaregiverListResponse, CaregiverUpdate,
-    JobApplicationResponse, AppointmentResponse
-)
+from database.models import *
 
 app = FastAPI(
     title="Caregiver App",
@@ -38,6 +33,7 @@ def get_connection():
         yield db.connection()
     finally:
         db.close()
+
 
 # Caregiver route
 caregiver_router = APIRouter(prefix="/api/caregivers", tags=["caregivers"])
@@ -407,14 +403,512 @@ def get_my_appointments(
     return appointments
 
 
-# POST   /api/jobs                             # Create job advertisement
-# GET    /api/jobs                             # Search/list jobs (for caregivers)
-# GET    /api/jobs/{job_id}                    # Get specific job details
-# PUT    /api/jobs/{job_id}                    # Update own job posting
-# DELETE /api/jobs/{job_id}                    # Delete own job posting
-# GET    /api/jobs/me                          # Get my posted jobs
-# GET    /api/jobs/{job_id}/applications       # Get applications for my job
-#
+
+# Job route
+job_router = APIRouter(prefix="/api/jobs", tags=["jobs"])
+
+@job_router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
+def create_job(
+        member_user_id: int, # query parameter
+        job_data: JobCreate,
+        db=Depends(get_db)
+):
+    """
+    Create a new job advertisement
+    """
+    # Check if member exists
+    check_query = text("""
+        SELECT member_user_id FROM "MEMBER" WHERE member_user_id = :member_user_id
+    """)
+    result = db.execute(check_query, {"member_user_id": member_user_id})
+    if not result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Member not found"
+        )
+
+    try:
+        # Insert new job
+        insert_query = text("""
+            INSERT INTO job (member_user_id, required_caregiving_type, other_requirements, date_posted)
+            VALUES (:member_user_id, :caregiving_type, :other_requirements, CURRENT_DATE)
+            RETURNING job_id
+        """)
+
+        result = db.execute(insert_query, {
+            "member_user_id": member_user_id,
+            "caregiving_type": job_data.required_caregiving_type.value,
+            "other_requirements": job_data.other_requirements
+        })
+
+        job_id = result.fetchone()[0]
+        db.commit()
+
+        # Fetch and return the created job
+        return get_job_by_id(job_id, db)
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating job: {str(e)}"
+        )
+
+
+@job_router.get("", response_model=List[JobListResponse])
+def search_jobs(
+        caregiving_type: Optional[CaregivingType] = Query(None, description="Filter by caregiving type"),
+        city: Optional[str] = Query(None, description="Filter by city"),
+        date_from: Optional[date] = Query(None, description="Filter jobs posted from this date"),
+        date_to: Optional[date] = Query(None, description="Filter jobs posted until this date"),
+        db=Depends(get_db)
+):
+    """
+    Search and list job advertisements
+    """
+    # Build WHERE clause dynamically
+    where_clauses = []
+    params = {}
+
+    if caregiving_type:
+        where_clauses.append("j.required_caregiving_type = :caregiving_type")
+        params['caregiving_type'] = caregiving_type.value
+
+    if city:
+        where_clauses.append("u.city ILIKE :city")
+        params['city'] = f"%{city}%"
+
+    if date_from:
+        where_clauses.append("j.date_posted >= :date_from")
+        params['date_from'] = date_from
+
+    if date_to:
+        where_clauses.append("j.date_posted <= :date_to")
+        params['date_to'] = date_to
+
+    where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+
+    # Execute query
+    query = text(f"""
+        SELECT 
+            j.job_id,
+            j.required_caregiving_type,
+            j.other_requirements,
+            j.date_posted,
+            u.city as member_city
+        FROM job j
+        JOIN member m ON j.member_user_id = m.member_user_id
+        JOIN "user" u ON m.member_user_id = u.user_id
+        {where_sql}
+        ORDER BY j.date_posted DESC
+        LIMIT :limit OFFSET :offset
+    """)
+
+    result = db.execute(query, params)
+    rows = result.fetchall()
+
+    # Format response
+    jobs = []
+    for row in rows:
+        row_dict = row_to_dict(row)
+        jobs.append(JobListResponse(**row_dict))
+
+    return jobs
+
+
+@job_router.get("/{job_id}", response_model=JobResponse)
+def get_job_by_id(
+        job_id: int,
+        db=Depends(get_db)
+):
+    """
+    Get detailed information about a specific job
+    """
+    query = text("""
+        SELECT 
+            j.job_id,
+            j.member_user_id,
+            j.required_caregiving_type,
+            j.other_requirements,
+            j.date_posted,
+            u.given_name || ' ' || u.surname as member_name,
+            u.city as member_city,
+            u.email as member_email,
+            u.phone_number as member_phone
+        FROM job j
+        JOIN "MEMBER" m ON j.member_user_id = m.member_user_id
+        JOIN "USER" u ON m.member_user_id = u.user_id
+        WHERE j.job_id = :job_id
+    """)
+
+    result = db.execute(query, {"job_id": job_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+
+    row_dict = row_to_dict(row)
+    return JobResponse(**row_dict)
+
+
+@job_router.put("/{job_id}", response_model=JobResponse)
+def update_job(
+        job_id: int,
+        member_user_id: int,
+        job_update: JobUpdate,
+        db=Depends(get_db)
+):
+    """
+    Update a job advertisement
+    """
+    # Check if job exists and belongs to the member
+    check_query = text("""
+        SELECT member_user_id FROM job WHERE job_id = :job_id
+    """)
+    result = db.execute(check_query, {"job_id": job_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+
+    if row[0] != member_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to update this job"
+        )
+
+    try:
+        # Build update query
+        updates = []
+        params = {"job_id": job_id}
+
+        if job_update.required_caregiving_type is not None:
+            updates.append("required_caregiving_type = :caregiving_type")
+            params['caregiving_type'] = job_update.required_caregiving_type.value
+
+        if job_update.other_requirements is not None:
+            updates.append("other_requirements = :other_requirements")
+            params['other_requirements'] = job_update.other_requirements
+
+        if not updates:
+            # Nothing to update, just return current job
+            return get_job_by_id(job_id, db)
+
+        update_query = text(f"""
+            UPDATE job 
+            SET {', '.join(updates)}
+            WHERE job_id = :job_id
+        """)
+
+        db.execute(update_query, params)
+        db.commit()
+
+        # Fetch and return updated job
+        return get_job_by_id(job_id, db)
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating job: {str(e)}"
+        )
+
+
+@job_router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_job(
+        job_id: int,
+        member_user_id: int,
+        db=Depends(get_db)
+):
+    """
+    Delete a job advertisement.
+    Only the member who posted the job can delete it.
+    Pass member_user_id as query parameter.
+    """
+    # Check if job exists and belongs to the member
+    check_query = text("""
+        SELECT member_user_id FROM job WHERE job_id = :job_id
+    """)
+    result = db.execute(check_query, {"job_id": job_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+
+    if row[0] != member_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete this job"
+        )
+
+    try:
+        # Delete job applications first (foreign key constraint)
+        delete_applications_query = text("""
+            DELETE FROM job_application WHERE job_id = :job_id
+        """)
+        db.execute(delete_applications_query, {"job_id": job_id})
+
+        # Delete job
+        delete_query = text("""
+            DELETE FROM job WHERE job_id = :job_id
+        """)
+        db.execute(delete_query, {"job_id": job_id})
+        db.commit()
+
+        return None
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting job: {str(e)}"
+        )
+
+
+@job_router.get("/me/posted", response_model=List[JobResponse])
+def get_my_posted_jobs(
+        member_user_id: int,  # query parameter
+        db=Depends(get_db)
+):
+    """
+    Get all jobs posted by a specific member
+    """
+    # Check if member exists
+    check_query = text("""
+        SELECT member_user_id FROM "MEMBER" WHERE member_user_id = :member_user_id
+    """)
+    result = db.execute(check_query, {"member_user_id": member_user_id})
+    if not result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Member not found"
+        )
+
+    query = text("""
+        SELECT 
+            j.job_id,
+            j.member_user_id,
+            j.required_caregiving_type,
+            j.other_requirements,
+            j.date_posted,
+            u.given_name || ' ' || u.surname as member_name,
+            u.city as member_city,
+            u.email as member_email,
+            u.phone_number as member_phone
+        FROM job j
+        JOIN "MEMBER" m ON j.member_user_id = m.member_user_id
+        JOIN "USER" u ON m.member_user_id = u.user_id
+        WHERE j.member_user_id = :member_user_id
+        ORDER BY j.date_posted DESC
+    """)
+
+    result = db.execute(query, {
+        "member_user_id": member_user_id,
+    })
+    rows = result.fetchall()
+
+    jobs = []
+    for row in rows:
+        row_dict = row_to_dict(row)
+        jobs.append(JobResponse(**row_dict))
+
+    return jobs
+
+
+@job_router.post("/{job_id}/apply", status_code=status.HTTP_201_CREATED)
+def apply_to_job(
+        job_id: int,
+        caregiver_user_id: int,
+        db=Depends(get_db)
+):
+    """
+    Apply to a job as a caregiver
+    """
+    # Check if job exists
+    job_check_query = text("""
+        SELECT job_id FROM job WHERE job_id = :job_id
+    """)
+    result = db.execute(job_check_query, {"job_id": job_id})
+    if not result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+
+    # Check if caregiver exists
+    caregiver_check_query = text("""
+        SELECT caregiver_user_id FROM "CAREGIVER" WHERE caregiver_user_id = :caregiver_user_id
+    """)
+    result = db.execute(caregiver_check_query, {"caregiver_user_id": caregiver_user_id})
+    if not result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Caregiver not found"
+        )
+
+    # Check if already applied
+    check_application_query = text("""
+        SELECT caregiver_user_id FROM job_application 
+        WHERE job_id = :job_id AND caregiver_user_id = :caregiver_user_id
+    """)
+    result = db.execute(check_application_query, {
+        "job_id": job_id,
+        "caregiver_user_id": caregiver_user_id
+    })
+
+    if result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You have already applied to this job"
+        )
+
+    try:
+        # Insert application
+        insert_query = text("""
+            INSERT INTO job_application (caregiver_user_id, job_id, date_applied)
+            VALUES (:caregiver_user_id, :job_id, CURRENT_DATE)
+        """)
+
+        db.execute(insert_query, {
+            "caregiver_user_id": caregiver_user_id,
+            "job_id": job_id
+        })
+        db.commit()
+
+        return {"message": "Application submitted successfully", "job_id": job_id}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error submitting application: {str(e)}"
+        )
+
+
+@job_router.delete("/{job_id}/apply", status_code=status.HTTP_204_NO_CONTENT)
+def withdraw_application(
+        job_id: int,
+        caregiver_user_id: int,
+        db=Depends(get_db)
+):
+    """
+    Withdraw an application from a job
+    """
+    # Check if application exists
+    check_query = text("""
+        SELECT caregiver_user_id FROM job_application 
+        WHERE job_id = :job_id AND caregiver_user_id = :caregiver_user_id
+    """)
+    result = db.execute(check_query, {
+        "job_id": job_id,
+        "caregiver_user_id": caregiver_user_id
+    })
+
+    if not result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found"
+        )
+
+    try:
+        # Delete application
+        delete_query = text("""
+            DELETE FROM job_application 
+            WHERE job_id = :job_id AND caregiver_user_id = :caregiver_user_id
+        """)
+
+        db.execute(delete_query, {
+            "job_id": job_id,
+            "caregiver_user_id": caregiver_user_id
+        })
+        db.commit()
+
+        return None
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error withdrawing application: {str(e)}"
+        )
+
+
+@job_router.get("/{job_id}/applications", response_model=List[ApplicantResponse])
+def get_job_applications(
+        job_id: int,
+        member_user_id: int,
+        db=Depends(get_db)
+):
+    """
+    Get all applicants for a specific job
+    """
+    # Check if job exists and belongs to the member
+    check_query = text("""
+        SELECT member_user_id FROM job WHERE job_id = :job_id
+    """)
+    result = db.execute(check_query, {"job_id": job_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+
+    if row[0] != member_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to view applications for this job"
+        )
+
+    query = text("""
+        SELECT 
+            c.caregiver_user_id,
+            u.given_name,
+            u.surname,
+            u.email,
+            u.phone_number,
+            u.city,
+            c.gender,
+            c.caregiving_type,
+            c.hourly_rate,
+            c.photo,
+            u.profile_description,
+            ja.date_applied
+        FROM job_application ja
+        JOIN caregiver c ON ja.caregiver_user_id = c.caregiver_user_id
+        JOIN "USER" u ON c.caregiver_user_id = u.user_id
+        WHERE ja.job_id = :job_id
+        ORDER BY ja.date_applied DESC
+    """)
+
+    result = db.execute(query, {
+        "job_id": job_id,
+    })
+    rows = result.fetchall()
+
+    applicants = []
+    for row in rows:
+        row_dict = row_to_dict(row)
+        applicants.append(ApplicantResponse(**row_dict))
+
+    return applicants
+
+
+# Include job router in the main app
+app.include_router(job_router)
+
+
+
 # POST   /api/jobs/{job_id}/apply              # Apply to a job
 # DELETE /api/jobs/{job_id}/apply              # Withdraw application
 # GET    /api/applications/{application_id}    # Get application details
