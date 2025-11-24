@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
-from datetime import date, time
+from datetime import date, time, datetime
 from decimal import Decimal
 import enum
 import os
@@ -30,9 +30,10 @@ class CaregivingType(str, enum.Enum):
     PLAYMATE = "playmate for children"
 
 class Gender(str, enum.Enum):
-    MALE = "male"
-    FEMALE = "female"
-    OTHER = "other"
+    MALE = "Male"
+    FEMALE = "Female"
+    OTHER = "Other"
+    PREFER_NOT_TO_SAY = "Prefer not to say"
 
 class AppointmentStatus(str, enum.Enum):
     PENDING = "pending"
@@ -83,7 +84,7 @@ class CaregiverResponse(BaseModel):
     hourly_rate: Decimal
     photo: Optional[str] = None
     profile_description: Optional[str] = None
-    updated_at: date
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -102,10 +103,10 @@ class CaregiverListResponse(BaseModel):
 
 class JobApplicationResponse(BaseModel):
     job_id: int
-    date_applied: date
+    date_applied: datetime
     required_caregiving_type: CaregivingType
     other_requirements: Optional[str] = None
-    date_posted: date
+    date_posted: datetime
     member_name: str
     member_city: str
 
