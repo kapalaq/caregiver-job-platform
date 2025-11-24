@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Appointments{% endblock %}
+
+{% block content %}
+<h2>Appointments</h2>
+<a href="/web/appointments/add" class="btn btn-success mb-3">Add New Appointment</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Hours</th>
+            <th>Status</th>
+            <th>Caregiver</th>
+            <th>Member</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in appointments %}
+        <tr>
+            <td>{{ a.appointment_id }}</td>
+            <td>{{ a.appointment_date }}</td>
+            <td>{{ a.appointment_time }}</td>
+            <td>{{ a.work_hours }}</td>
+            <td>{{ a.status }}</td>
+            <td>{{ a.caregiver_name }}</td>
+            <td>{{ a.member_name }}</td>
+            <td>
+                <a href="/web/appointments/edit/{{ a.appointment_id }}" class="btn btn-sm btn-primary">Edit</a>
+                <a href="/web/appointments/delete/{{ a.appointment_id }}" class="btn btn-sm btn-danger" 
+                   onclick="return confirm('Are you sure?')">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

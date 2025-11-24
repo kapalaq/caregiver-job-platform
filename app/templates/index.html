@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Caregiver Platform{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Caregiver Job Platform</h1>
+    <p class="lead">Connect caregivers with families seeking care services</p>
+    <hr class="my-4">
+    <p>Use the navigation above to manage caregivers, members, appointments, jobs, and addresses.</p>
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Caregivers</h5>
+                    <p class="card-text">Manage caregiver profiles and information</p>
+                    <a href="/web/caregivers" class="btn btn-primary">View Caregivers</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Members</h5>
+                    <p class="card-text">Manage family member profiles</p>
+                    <a href="/web/members" class="btn btn-primary">View Members</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Appointments</h5>
+                    <p class="card-text">Manage appointments between caregivers and members</p>
+                    <a href="/web/appointments" class="btn btn-primary">View Appointments</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

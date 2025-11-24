@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Caregivers{% endblock %}
+
+{% block content %}
+<h2>Caregivers</h2>
+<a href="/web/caregivers/add" class="btn btn-success mb-3">Add New Caregiver</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>City</th>
+            <th>Type</th>
+            <th>Gender</th>
+            <th>Hourly Rate</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in caregivers %}
+        <tr>
+            <td>{{ c.caregiver_user_id }}</td>
+            <td>{{ c.given_name }} {{ c.surname }}</td>
+            <td>{{ c.email }}</td>
+            <td>{{ c.city }}</td>
+            <td>{{ c.caregiving_type }}</td>
+            <td>{{ c.gender }}</td>
+            <td>${{ c.hourly_rate }}</td>
+            <td>
+                <a href="/web/caregivers/edit/{{ c.caregiver_user_id }}" class="btn btn-sm btn-primary">Edit</a>
+                <a href="/web/caregivers/delete/{{ c.caregiver_user_id }}" class="btn btn-sm btn-danger" 
+                   onclick="return confirm('Are you sure?')">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

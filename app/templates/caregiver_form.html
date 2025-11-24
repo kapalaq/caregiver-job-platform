@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{% if caregiver %}Edit{% else %}Add{% endif %} Caregiver{% endblock %}
+
+{% block content %}
+<h2>{% if caregiver %}Edit{% else %}Add{% endif %} Caregiver</h2>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    {{ error }}
+</div>
+{% endif %}
+
+<form method="POST">
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" name="email" value="{{ caregiver.email if caregiver else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Given Name</label>
+        <input type="text" class="form-control" name="given_name" value="{{ caregiver.given_name if caregiver else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Surname</label>
+        <input type="text" class="form-control" name="surname" value="{{ caregiver.surname if caregiver else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">City</label>
+        <input type="text" class="form-control" name="city" value="{{ caregiver.city if caregiver else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Phone Number</label>
+        <input type="text" class="form-control" name="phone_number" value="{{ caregiver.phone_number if caregiver else '' }}" 
+               pattern="[0-9]{11}" maxlength="11" 
+               placeholder="12345678901 (11 digits)" 
+               title="Phone number must be exactly 11 digits" required>
+        <small class="text-muted">Must be exactly 11 digits (e.g., 12345678901)</small>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Gender</label>
+        <select class="form-control" name="gender" required>
+            <option value="male" {% if caregiver and caregiver.gender == 'male' %}selected{% endif %}>Male</option>
+            <option value="female" {% if caregiver and caregiver.gender == 'female' %}selected{% endif %}>Female</option>
+            <option value="other" {% if caregiver and caregiver.gender == 'other' %}selected{% endif %}>Other</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Caregiving Type</label>
+        <select class="form-control" name="caregiving_type" required>
+            <option value="babysitter" {% if caregiver and caregiver.caregiving_type == 'babysitter' %}selected{% endif %}>Babysitter</option>
+            <option value="caregiver for elderly" {% if caregiver and caregiver.caregiving_type == 'caregiver for elderly' %}selected{% endif %}>Caregiver for Elderly</option>
+            <option value="playmate for children" {% if caregiver and caregiver.caregiving_type == 'playmate for children' %}selected{% endif %}>Playmate for Children</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Hourly Rate</label>
+        <input type="number" step="0.01" class="form-control" name="hourly_rate" value="{{ caregiver.hourly_rate if caregiver else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Profile Description</label>
+        <textarea class="form-control" name="profile_description" rows="3">{{ caregiver.profile_description if caregiver else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-control" name="password" {% if not caregiver %}required{% endif %}>
+        {% if caregiver %}<small class="text-muted">Leave blank to keep current password</small>{% endif %}
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="/web/caregivers" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}{% if member %}Edit{% else %}Add{% endif %} Member{% endblock %}
+
+{% block content %}
+<h2>{% if member %}Edit{% else %}Add{% endif %} Member</h2>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    {{ error }}
+</div>
+{% endif %}
+
+<form method="POST">
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" name="email" value="{{ member.email if member else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Given Name</label>
+        <input type="text" class="form-control" name="given_name" value="{{ member.given_name if member else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Surname</label>
+        <input type="text" class="form-control" name="surname" value="{{ member.surname if member else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">City</label>
+        <input type="text" class="form-control" name="city" value="{{ member.city if member else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Phone Number</label>
+        <input type="text" class="form-control" name="phone_number" value="{{ member.phone_number if member else '' }}" 
+               pattern="[0-9]{11}" maxlength="11" 
+               placeholder="12345678901 (11 digits)" 
+               title="Phone number must be exactly 11 digits" required>
+        <small class="text-muted">Must be exactly 11 digits (e.g., 12345678901)</small>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Profile Description</label>
+        <textarea class="form-control" name="profile_description" rows="3">{{ member.profile_description if member else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">House Rules</label>
+        <textarea class="form-control" name="house_rules" rows="3">{{ member.house_rules if member else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Dependent Description</label>
+        <textarea class="form-control" name="dependent_description" rows="3">{{ member.dependent_description if member else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-control" name="password" {% if not member %}required{% endif %}>
+        {% if member %}<small class="text-muted">Leave blank to keep current password</small>{% endif %}
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="/web/members" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

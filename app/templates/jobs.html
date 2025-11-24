@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Jobs{% endblock %}
+
+{% block content %}
+<h2>Job Postings</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Required Type</th>
+            <th>Posted By</th>
+            <th>Date Posted</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for j in jobs %}
+        <tr>
+            <td>{{ j.job_id }}</td>
+            <td>{{ j.required_caregiving_type }}</td>
+            <td>{{ j.member_name }}</td>
+            <td>{{ j.date_posted }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
