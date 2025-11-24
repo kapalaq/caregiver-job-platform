@@ -124,7 +124,3 @@ class AppointmentResponse(BaseModel):
     member_city: str
 
     model_config = ConfigDict(from_attributes=True)
-
-class PhotoUploadResponse(BaseModel):
-    photo_url: str
-    message: str

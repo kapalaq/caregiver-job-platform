@@ -2,20 +2,18 @@
 Project: Database Management System Assignment 3
 Made by: Ruslan Nagimov, Sayat Abdikul, Aitzhan kadyrov
 """
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, UploadFile, File, Query
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Query
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from typing import Optional, List
 from pathlib import Path
-import shutil
-import uuid
 
 
 from database.models import (
     get_db,
     CaregivingType, Gender, AppointmentStatus,
     CaregiverResponse, CaregiverListResponse, CaregiverUpdate,
-    JobApplicationResponse, AppointmentResponse, PhotoUploadResponse
+    JobApplicationResponse, AppointmentResponse
 )
 
 app = FastAPI(
@@ -409,6 +407,24 @@ def get_my_appointments(
     return appointments
 
 
+# POST   /api/jobs                             # Create job advertisement
+# GET    /api/jobs                             # Search/list jobs (for caregivers)
+# GET    /api/jobs/{job_id}                    # Get specific job details
+# PUT    /api/jobs/{job_id}                    # Update own job posting
+# DELETE /api/jobs/{job_id}                    # Delete own job posting
+# GET    /api/jobs/me                          # Get my posted jobs
+# GET    /api/jobs/{job_id}/applications       # Get applications for my job
+#
+# POST   /api/jobs/{job_id}/apply              # Apply to a job
+# DELETE /api/jobs/{job_id}/apply              # Withdraw application
+# GET    /api/applications/{application_id}    # Get application details
+#
+# POST   /api/appointments                     # Create appointment (by member)
+# GET    /api/appointments/{appointment_id}    # Get appointment details
+# PUT    /api/appointments/{appointment_id}    # Update appointment
+# DELETE /api/appointments/{appointment_id}    # Cancel appointment
+# PATCH  /api/appointments/{appointment_id}/confirm    # Confirm appointment (by caregiver)
+# PATCH  /api/appointments/{appointment_id}/decline    # Decline appointment (by caregiver)
 
 
 
