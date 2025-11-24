@@ -49,6 +49,12 @@ async def list_caregivers(
     city: Optional[str] = None,
     conn=Depends(get_connection)
 ):
+    # Convert empty strings to None for proper SQL IS NULL checks
+    if caregiving_type == "":
+        caregiving_type = None
+    if city == "":
+        city = None
+    
     query = text("""
         SELECT c.caregiver_user_id, u.email, u.given_name, u.surname, u.city, 
                u.phone_number, c.gender, c.caregiving_type, c.hourly_rate
