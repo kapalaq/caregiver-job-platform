@@ -198,13 +198,13 @@ INSERT INTO USER (email, given_name, surname, city, phone_number, profile_descri
 INSERT INTO CAREGIVER (caregiver_user_id, photo, gender, caregiving_type, hourly_rate, rating, total_reviews) VALUES
 (11, 'photos/baurzhan-karimov.jpg', 'Male', 'babysitter', 25.00, 4.80, 45),
 (12, 'photos/madina-zhunisova.jpg', 'Female', 'caregiver for elderly', 30.00, 4.95, 78),
-(13, 'photos/dauren-ospanov.jpg', 'Male', 'playmate for children', 20.00, 4.70, 32),
+(13, 'photos/dauren-ospanov.jpg', 'Male', 'playmate for children', 8.50, 4.70, 32),
 (14, 'photos/aliya-kassymova.jpg', 'Female', 'babysitter', 28.00, 4.85, 62),
 (15, 'photos/timur-suleimenov.jpg', 'Male', 'caregiver for elderly', 32.00, 4.90, 54),
-(16, 'photos/kamila-baiguzhinova.jpg', 'Female', 'babysitter', 26.00, 4.88, 71),
-(17, 'photos/serik-amangeldy.jpg', 'Prefer not to say', 'playmate for children', 22.00, 4.75, 28),
+(16, 'photos/kamila-baiguzhinova.jpg', 'Female', 'babysitter', 9.75, 4.88, 71),
+(17, 'photos/serik-amangeldy.jpg', 'Prefer not to say', 'playmate for children', 7.00, 4.75, 28),
 (18, 'photos/roza-abilova.jpg', 'Other', 'caregiver for elderly', 35.00, 4.92, 89),
-(19, 'photos/azamat-zhumabekov.jpg', 'Male', 'babysitter', 24.00, 4.78, 41),
+(19, 'photos/azamat-zhumabekov.jpg', 'Male', 'babysitter', 9.50, 4.78, 41),
 (20, 'photos/lyazzat-bakytova.jpg', 'Female', 'playmate for children', 23.00, 4.82, 55);
 
 -- Members Insert
