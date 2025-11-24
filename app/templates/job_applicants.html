@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Job Applicants{% endblock %}
+
+{% block content %}
+<h2>Applicants for Job #{{ job.job_id }}</h2>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">{{ job.required_caregiving_type|title }}</h5>
+        <p class="card-text">
+            <strong>Posted by:</strong> {{ job.member_name }}<br>
+            <strong>Posted on:</strong> {{ job.date_posted }}
+        </p>
+    </div>
+</div>
+
+<h3>Applicants ({{ applicants|length }})</h3>
+
+{% if applicants %}
+<div class="row">
+    {% for a in applicants %}
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ a.given_name }} {{ a.surname }}</h5>
+                <p class="card-text">
+                    <strong>Email:</strong> {{ a.email }}<br>
+                    <strong>Phone:</strong> {{ a.phone_number }}<br>
+                    <strong>City:</strong> {{ a.city }}<br>
+                    <strong>Type:</strong> {{ a.caregiving_type }}<br>
+                    <strong>Hourly Rate:</strong> ${{ a.hourly_rate }}<br>
+                    <strong>Rating:</strong> {{ a.rating if a.rating else 'N/A' }}<br>
+                    <strong>Gender:</strong> {{ a.gender }}<br>
+                    <strong>Applied:</strong> {{ a.application_date }}<br>
+                    <strong>Status:</strong> <span class="badge bg-info">{{ a.application_status }}</span>
+                </p>
+                {% if a.cover_letter %}
+                <p class="card-text">
+                    <strong>Cover Letter:</strong><br>
+                    <em>{{ a.cover_letter }}</em>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-muted">No applicants yet.</p>
+{% endif %}
+
+<a href="/web/jobs" class="btn btn-secondary mt-3">Back to Jobs</a>
+{% endblock %}

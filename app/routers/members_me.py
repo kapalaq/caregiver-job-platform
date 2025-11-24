@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy import text
 from pydantic import BaseModel, Field
 from datetime import date, time
-from db import get_connection
+from ..db import get_connection
 
 router = APIRouter(prefix="/api/members/me", tags=["members.me"])
 

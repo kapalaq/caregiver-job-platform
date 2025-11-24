@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Post New Job{% endblock %}
+
+{% block content %}
+<h2>Post New Job Advertisement</h2>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    {{ error }}
+</div>
+{% endif %}
+
+<form method="POST">
+    <div class="mb-3">
+        <label class="form-label">Family Member</label>
+        <select class="form-control" name="member_user_id" required>
+            <option value="">Select member...</option>
+            {% for m in members %}
+            <option value="{{ m.member_user_id }}">{{ m.given_name }} {{ m.surname }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Required Caregiving Type</label>
+        <select class="form-control" name="required_caregiving_type" required>
+            <option value="babysitter">Babysitter</option>
+            <option value="caregiver for elderly">Caregiver for Elderly</option>
+            <option value="playmate for children">Playmate for Children</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Dependent Age (years)</label>
+        <input type="number" class="form-control" name="dependent_age" min="0" max="120" required>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Preferred Start Time</label>
+                <input type="time" class="form-control" name="preferred_time_start" required>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Preferred End Time</label>
+                <input type="time" class="form-control" name="preferred_time_end" required>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Frequency</label>
+        <select class="form-control" name="frequency" required>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="weekends only">Weekends Only</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Duration (weeks)</label>
+        <input type="number" class="form-control" name="duration" min="1" max="52" required>
+        <small class="text-muted">How many weeks will this job last?</small>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Other Requirements</label>
+        <textarea class="form-control" name="other_requirements" rows="4" 
+                  placeholder="e.g., CPR certification preferred, must be patient, experience with special needs..."></textarea>
+        <small class="text-muted">Describe any specific requirements or preferences</small>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Post Job</button>
+    <a href="/web/jobs" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

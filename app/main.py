@@ -4,8 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from typing import Optional
-from routers import members_me
-from db import get_connection
+from .routers import members_me
+from .db import get_connection
 
 # Create FastAPI app
 app = FastAPI(
@@ -43,17 +43,35 @@ async def web_home(request: Request):
 
 # Caregivers CRUD
 @app.get("/web/caregivers", response_class=HTMLResponse)
-async def list_caregivers(request: Request, conn=Depends(get_connection)):
+async def list_caregivers(
+    request: Request,
+    caregiving_type: Optional[str] = None,
+    city: Optional[str] = None,
+    conn=Depends(get_connection)
+):
     query = text("""
         SELECT c.caregiver_user_id, u.email, u.given_name, u.surname, u.city, 
                u.phone_number, c.gender, c.caregiving_type, c.hourly_rate
         FROM CAREGIVER c
         JOIN USER u ON c.caregiver_user_id = u.user_id
+        WHERE (:type IS NULL OR c.caregiving_type = :type)
+          AND (:city IS NULL OR u.city = :city)
         ORDER BY c.caregiver_user_id
     """)
-    result = conn.execute(query)
+    result = conn.execute(query, {"type": caregiving_type, "city": city})
     caregivers = [dict(zip(result.keys(), row)) for row in result.fetchall()]
-    return templates.TemplateResponse("caregivers.html", {"request": request, "caregivers": caregivers})
+    
+    # Get distinct cities and types for filters
+    cities_query = text("SELECT DISTINCT city FROM USER ORDER BY city")
+    cities = [row[0] for row in conn.execute(cities_query).fetchall()]
+    
+    return templates.TemplateResponse("caregivers.html", {
+        "request": request,
+        "caregivers": caregivers,
+        "cities": cities,
+        "selected_type": caregiving_type,
+        "selected_city": city
+    })
 
 
 @app.get("/web/caregivers/add", response_class=HTMLResponse)
@@ -617,15 +635,153 @@ async def delete_appointment(appointment_id: int, conn=Depends(get_connection)):
 @app.get("/web/jobs", response_class=HTMLResponse)
 async def list_jobs(request: Request, conn=Depends(get_connection)):
     query = text("""
-        SELECT j.job_id, j.required_caregiving_type, j.date_posted,
-               CONCAT(u.given_name, ' ', u.surname) as member_name
+        SELECT j.job_id, j.required_caregiving_type, j.other_requirements, j.date_posted,
+               j.status, j.dependent_age, j.preferred_time_start, j.preferred_time_end,
+               j.frequency, j.duration,
+               CONCAT(u.given_name, ' ', u.surname) as member_name, u.city
         FROM JOB j
         JOIN USER u ON j.member_user_id = u.user_id
+        WHERE j.status = 'open'
         ORDER BY j.date_posted DESC
     """)
     result = conn.execute(query)
     jobs = [dict(zip(result.keys(), row)) for row in result.fetchall()]
     return templates.TemplateResponse("jobs.html", {"request": request, "jobs": jobs})
+
+
+@app.get("/web/jobs/add", response_class=HTMLResponse)
+async def add_job_form(request: Request, conn=Depends(get_connection)):
+    # Get members for dropdown
+    members_query = text("""
+        SELECT m.member_user_id, u.given_name, u.surname
+        FROM MEMBER m
+        JOIN USER u ON m.member_user_id = u.user_id
+        ORDER BY u.given_name, u.surname
+    """)
+    members_result = conn.execute(members_query)
+    members = [dict(zip(members_result.keys(), row)) for row in members_result.fetchall()]
+    
+    return templates.TemplateResponse("job_form.html", {
+        "request": request,
+        "job": None,
+        "members": members
+    })
+
+
+@app.post("/web/jobs/add")
+async def add_job(
+    request: Request,
+    member_user_id: int = Form(...),
+    required_caregiving_type: str = Form(...),
+    dependent_age: int = Form(...),
+    preferred_time_start: str = Form(...),
+    preferred_time_end: str = Form(...),
+    frequency: str = Form(...),
+    duration: int = Form(...),
+    other_requirements: Optional[str] = Form(None),
+    conn=Depends(get_connection)
+):
+    try:
+        with conn.begin():
+            insert_query = text("""
+                INSERT INTO JOB (member_user_id, required_caregiving_type, other_requirements,
+                                date_posted, status, dependent_age, preferred_time_start,
+                                preferred_time_end, frequency, duration)
+                VALUES (:member_id, :type, :requirements, CURDATE(), 'open', :age,
+                        :start_time, :end_time, :freq, :dur)
+            """)
+            conn.execute(insert_query, {
+                "member_id": member_user_id,
+                "type": required_caregiving_type,
+                "requirements": other_requirements,
+                "age": dependent_age,
+                "start_time": preferred_time_start,
+                "end_time": preferred_time_end,
+                "freq": frequency,
+                "dur": duration
+            })
+    except Exception as e:
+        members_query = text("""
+            SELECT m.member_user_id, u.given_name, u.surname
+            FROM MEMBER m
+            JOIN USER u ON m.member_user_id = u.user_id
+            ORDER BY u.given_name, u.surname
+        """)
+        members_result = conn.execute(members_query)
+        members = [dict(zip(members_result.keys(), row)) for row in members_result.fetchall()]
+        
+        return templates.TemplateResponse("job_form.html", {
+            "request": request,
+            "job": None,
+            "members": members,
+            "error": f"Database error: {str(e)}"
+        }, status_code=500)
+    
+    return RedirectResponse(url="/web/jobs", status_code=303)
+
+
+@app.get("/web/jobs/{job_id}/applicants", response_class=HTMLResponse)
+async def view_job_applicants(request: Request, job_id: int, conn=Depends(get_connection)):
+    # Get job details
+    job_query = text("""
+        SELECT j.job_id, j.required_caregiving_type, j.date_posted,
+               CONCAT(u.given_name, ' ', u.surname) as member_name
+        FROM JOB j
+        JOIN USER u ON j.member_user_id = u.user_id
+        WHERE j.job_id = :id
+    """)
+    job_result = conn.execute(job_query, {"id": job_id})
+    job_row = job_result.fetchone()
+    
+    if not job_row:
+        return RedirectResponse(url="/web/jobs", status_code=303)
+    
+    job = dict(zip(job_result.keys(), job_row))
+    
+    # Get applicants
+    applicants_query = text("""
+        SELECT ja.application_id, ja.application_date, ja.application_status, ja.cover_letter,
+               c.caregiver_user_id, u.given_name, u.surname, u.email, u.phone_number, u.city,
+               c.gender, c.caregiving_type, c.hourly_rate, c.rating
+        FROM JOB_APPLICATION ja
+        JOIN CAREGIVER c ON ja.caregiver_user_id = c.caregiver_user_id
+        JOIN USER u ON c.caregiver_user_id = u.user_id
+        WHERE ja.job_id = :id
+        ORDER BY ja.application_date DESC
+    """)
+    applicants_result = conn.execute(applicants_query, {"id": job_id})
+    applicants = [dict(zip(applicants_result.keys(), row)) for row in applicants_result.fetchall()]
+    
+    return templates.TemplateResponse("job_applicants.html", {
+        "request": request,
+        "job": job,
+        "applicants": applicants
+    })
+
+
+@app.post("/web/jobs/apply/{job_id}")
+async def apply_to_job(
+    job_id: int,
+    caregiver_user_id: int = Form(...),
+    cover_letter: Optional[str] = Form(None),
+    conn=Depends(get_connection)
+):
+    try:
+        with conn.begin():
+            insert_query = text("""
+                INSERT INTO JOB_APPLICATION (job_id, caregiver_user_id, application_date,
+                                            application_status, cover_letter)
+                VALUES (:job_id, :caregiver_id, CURDATE(), 'pending', :cover)
+            """)
+            conn.execute(insert_query, {
+                "job_id": job_id,
+                "caregiver_id": caregiver_user_id,
+                "cover": cover_letter
+            })
+    except Exception as e:
+        return {"error": str(e)}
+    
+    return RedirectResponse(url="/web/jobs", status_code=303)
 
 
 # Addresses CRUD

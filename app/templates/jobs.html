@@ -4,25 +4,35 @@
 
 {% block content %}
 <h2>Job Postings</h2>
+<a href="/web/jobs/add" class="btn btn-success mb-3">Post New Job</a>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Required Type</th>
-            <th>Posted By</th>
-            <th>Date Posted</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for j in jobs %}
-        <tr>
-            <td>{{ j.job_id }}</td>
-            <td>{{ j.required_caregiving_type }}</td>
-            <td>{{ j.member_name }}</td>
-            <td>{{ j.date_posted }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="row">
+    {% for j in jobs %}
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ j.required_caregiving_type|title }}</h5>
+                <p class="card-text">
+                    <strong>Posted by:</strong> {{ j.member_name }}<br>
+                    <strong>City:</strong> {{ j.city }}<br>
+                    <strong>Dependent Age:</strong> {{ j.dependent_age }} years<br>
+                    <strong>Time:</strong> {{ j.preferred_time_start }} - {{ j.preferred_time_end }}<br>
+                    <strong>Frequency:</strong> {{ j.frequency }}<br>
+                    <strong>Duration:</strong> {{ j.duration }} weeks<br>
+                    <strong>Posted:</strong> {{ j.date_posted }}<br>
+                    <strong>Status:</strong> <span class="badge bg-success">{{ j.status }}</span>
+                </p>
+                {% if j.other_requirements %}
+                <p class="card-text"><strong>Requirements:</strong><br>{{ j.other_requirements }}</p>
+                {% endif %}
+                <a href="/web/jobs/{{ j.job_id }}/applicants" class="btn btn-sm btn-info">View Applicants</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not jobs %}
+<p class="text-muted">No job postings available.</p>
+{% endif %}
 {% endblock %}

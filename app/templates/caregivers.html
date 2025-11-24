@@ -4,6 +4,36 @@
 
 {% block content %}
 <h2>Caregivers</h2>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Caregiving Type</label>
+                <select class="form-control" name="caregiving_type" onchange="this.form.submit()">
+                    <option value="">All Types</option>
+                    <option value="babysitter" {% if selected_type == 'babysitter' %}selected{% endif %}>Babysitter</option>
+                    <option value="caregiver for elderly" {% if selected_type == 'caregiver for elderly' %}selected{% endif %}>Caregiver for Elderly</option>
+                    <option value="playmate for children" {% if selected_type == 'playmate for children' %}selected{% endif %}>Playmate for Children</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">City</label>
+                <select class="form-control" name="city" onchange="this.form.submit()">
+                    <option value="">All Cities</option>
+                    {% for c in cities %}
+                    <option value="{{ c }}" {% if selected_city == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <a href="/web/caregivers" class="btn btn-secondary d-block">Clear Filters</a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <a href="/web/caregivers/add" class="btn btn-success mb-3">Add New Caregiver</a>
 
 <table class="table table-striped">
