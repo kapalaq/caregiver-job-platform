@@ -284,16 +284,16 @@ INSERT INTO JOB_APPLICATION (caregiver_user_id, job_id, date_applied, cover_lett
 
 -- Appointment Insert
 INSERT INTO APPOINTMENT (caregiver_user_id, member_user_id, appointment_date, appointment_time, work_hours, status, total_cost, notes) VALUES
-(11, 1, '2024-11-25', '09:00:00', 6.00, 'confirmed', 15000.00, 'First day trial with painting and building activities'),
-(12, 2, '2024-11-26', '08:00:00', 4.00, 'confirmed', 12000.00, 'Morning care including medication reminders and breakfast'),
-(13, 3, '2024-11-27', '15:00:00', 3.00, 'confirmed', 6000.00, 'Soccer practice at the park'),
-(14, 4, '2024-11-28', '10:00:00', 6.00, 'confirmed', 16800.00, 'Weekend childcare for twins'),
-(15, 5, '2024-11-29', '07:00:00', 6.00, 'pending', 19200.00, 'Post-surgery care and mobility assistance'),
-(16, 6, '2024-11-30', '14:00:00', 4.00, 'confirmed', 10400.00, 'After-school homework help and creative activities'),
-(17, 8, '2024-12-01', '13:00:00', 4.00, 'pending', 8800.00, 'Outdoor playtime and dinosaur adventures'),
-(18, 7, '2024-12-02', '16:00:00', 4.00, 'confirmed', 14000.00, 'Evening care for grandmother with dementia'),
-(19, 9, '2024-12-03', '15:00:00', 4.00, 'confirmed', 9600.00, 'After-school supervision for twin boys'),
-(20, 3, '2024-12-04', '15:00:00', 3.00, 'pending', 6900.00, 'Outdoor sports and play session');
+(11, 1, '2025-11-25', '09:00:00', 6.00, 'confirmed', 15000.00, 'First day trial with painting and building activities'),
+(12, 2, '2025-11-26', '08:00:00', 4.00, 'confirmed', 12000.00, 'Morning care including medication reminders and breakfast'),
+(13, 3, '2025-11-27', '15:00:00', 3.00, 'confirmed', 6000.00, 'Soccer practice at the park'),
+(14, 4, '2025-11-28', '10:00:00', 6.00, 'confirmed', 16800.00, 'Weekend childcare for twins'),
+(15, 5, '2025-11-29', '07:00:00', 6.00, 'pending', 19200.00, 'Post-surgery care and mobility assistance'),
+(16, 6, '2025-11-30', '14:00:00', 4.00, 'confirmed', 10400.00, 'After-school homework help and creative activities'),
+(17, 8, '2025-12-01', '13:00:00', 4.00, 'pending', 8800.00, 'Outdoor playtime and dinosaur adventures'),
+(18, 7, '2025-12-02', '16:00:00', 4.00, 'confirmed', 14000.00, 'Evening care for grandmother with dementia'),
+(19, 9, '2025-12-03', '15:00:00', 4.00, 'confirmed', 9600.00, 'After-school supervision for twin boys'),
+(20, 3, '2025-12-04', '15:00:00', 3.00, 'pending', 6900.00, 'Outdoor sports and play session');
 
 
 -- Views
