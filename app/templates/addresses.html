@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Addresses{% endblock %}
+
+{% block content %}
+<h2>Member Addresses</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>House Number</th>
+            <th>Street</th>
+            <th>Town</th>
+            <th>Member</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in addresses %}
+        <tr>
+            <td>{{ a.address_id }}</td>
+            <td>{{ a.house_number }}</td>
+            <td>{{ a.street }}</td>
+            <td>{{ a.town }}</td>
+            <td>{{ a.member_name }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

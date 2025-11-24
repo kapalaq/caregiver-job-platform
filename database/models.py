@@ -1,0 +1,241 @@
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from typing import Optional, Dict, Any
+from datetime import date, time, datetime
+from decimal import Decimal
+import enum
+import os
+
+# SQLAlchemy
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/csci_341")
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_engine():
+    return engine
+
+def row_to_dict(row) -> Dict[str, Any]:
+    """Convert SQLAlchemy row to dictionary"""
+    if row is None:
+        return None
+    return dict(row._mapping)
+
+# Enums
+class CaregivingType(str, enum.Enum):
+    BABYSITTER = "babysitter"
+    ELDERLY = "caregiver for elderly"
+    PLAYMATE = "playmate for children"
+
+class Gender(str, enum.Enum):
+    MALE = "Male"
+    FEMALE = "Female"
+    OTHER = "Other"
+    PREFER_NOT_TO_SAY = "Prefer not to say"
+
+class AppointmentStatus(str, enum.Enum):
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    DECLINED = "declined"
+    CANCELLED = "cancelled"
+    COMPLETED = "completed"
+
+
+# API Validation Schemas
+# Caregivers
+class UserBase(BaseModel):
+    email: EmailStr
+    given_name: str
+    surname: str
+    city: str
+    phone_number: str
+    profile_description: Optional[str] = None
+
+class UserResponse(UserBase):
+    user_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CaregiverBase(BaseModel):
+    gender: Gender
+    caregiving_type: CaregivingType
+    hourly_rate: Decimal = Field(ge=0, decimal_places=2)
+
+class CaregiverUpdate(BaseModel):
+    gender: Optional[Gender] = None
+    caregiving_type: Optional[CaregivingType] = None
+    hourly_rate: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    given_name: Optional[str] = None
+    surname: Optional[str] = None
+    city: Optional[str] = None
+    phone_number: Optional[str] = None
+    profile_description: Optional[str] = None
+
+class CaregiverResponse(BaseModel):
+    caregiver_user_id: int
+    email: EmailStr
+    phone_number: str
+    given_name: str
+    surname: str
+    city: str
+    gender: Gender
+    caregiving_type: CaregivingType
+    hourly_rate: Decimal
+    photo: Optional[str] = None
+    profile_description: Optional[str] = None
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CaregiverListResponse(BaseModel):
+    caregiver_user_id: int
+    given_name: str
+    surname: str
+    city: str
+    gender: Gender
+    caregiving_type: CaregivingType
+    hourly_rate: Decimal
+    photo: Optional[str] = None
+    profile_description: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class JobApplicationResponse(BaseModel):
+    job_id: int
+    date_applied: datetime
+    required_caregiving_type: CaregivingType
+    other_requirements: Optional[str] = None
+    date_posted: datetime
+    member_name: str
+    member_city: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Job
+class JobCreate(BaseModel):
+    required_caregiving_type: CaregivingType
+    other_requirements: Optional[str] = None
+
+class JobUpdate(BaseModel):
+    required_caregiving_type: Optional[CaregivingType] = None
+    other_requirements: Optional[str] = None
+
+class JobResponse(BaseModel):
+    job_id: int
+    member_user_id: int
+    required_caregiving_type: str
+    other_requirements: Optional[str] = None
+    date_posted: date
+    member_name: str
+    member_city: str
+    member_email: str
+    member_phone: str
+
+class JobListResponse(BaseModel):
+    job_id: int
+    required_caregiving_type: str
+    other_requirements: Optional[str] = None
+    date_posted: date
+    member_city: str
+
+class JobApplicationCreate(BaseModel):
+    caregiver_user_id: int
+
+class ApplicantResponse(BaseModel):
+    caregiver_user_id: int
+    given_name: str
+    surname: str
+    email: str
+    phone_number: str
+    city: str
+    gender: str
+    caregiving_type: str
+    hourly_rate: Decimal
+    photo: Optional[str] = None
+    profile_description: Optional[str] = None
+    date_applied: date
+
+# Job Application
+class JobApplicationDetailResponse(BaseModel):
+    caregiver_user_id: int
+    job_id: int
+    date_applied: date
+    required_caregiving_type: str
+    other_requirements: Optional[str] = None
+    date_posted: date
+    member_user_id: int
+    member_name: str
+    member_city: str
+    member_email: str
+    member_phone: str
+    caregiver_name: str
+    caregiver_email: str
+    caregiver_phone: str
+    caregiver_city: str
+    hourly_rate: Decimal
+
+
+# Appointment
+class AppointmentCreate(BaseModel):
+    caregiver_user_id: int
+    appointment_date: date
+    appointment_time: time
+    work_hours: float = Field(..., gt=0)
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentUpdate(BaseModel):
+    """Model for updating an appointment"""
+    appointment_date: Optional[date] = None
+    appointment_time: Optional[time] = None
+    work_hours: Optional[float] = Field(None, gt=0)
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentResponse(BaseModel):
+    appointment_id: int
+    appointment_date: date
+    appointment_time: time
+    work_hours: float
+    status: AppointmentStatus
+    member_name: str
+    member_phone: str
+    member_email: str
+    member_city: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentDetailResponse(BaseModel):
+    appointment_id: int
+    appointment_date: date
+    appointment_time: time
+    work_hours: float
+    status: AppointmentStatus
+    caregiver_user_id: int
+    member_user_id: int
+    caregiver_name: str
+    caregiver_email: str
+    caregiver_phone: str
+    caregiver_city: str
+    hourly_rate: float
+    caregiving_type: str
+    member_name: str
+    member_email: str
+    member_phone: str
+    member_city: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentStatusUpdate(BaseModel):
+    status: AppointmentStatus
+
+    model_config = ConfigDict(from_attributes=True)
