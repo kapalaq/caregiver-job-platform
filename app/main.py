@@ -4,8 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from typing import Optional
-from .routers import members_me
-from .db import get_connection
+from routers import members_me
+from db import get_connection
 
 # Create FastAPI app
 app = FastAPI(
