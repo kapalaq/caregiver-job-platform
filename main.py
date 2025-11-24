@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from typing import Optional, List
 from pathlib import Path
+from datetime import date
 
 
 from database.models import *
@@ -65,7 +66,7 @@ def search_caregivers(
             c.photo,
             u.profile_description
         FROM CAREGIVER c
-        JOIN "USER" u ON c.caregiver_user_id = u.user_id
+        JOIN USER u ON c.caregiver_user_id = u.user_id
         WHERE 1=1
     """
 
@@ -77,7 +78,7 @@ def search_caregivers(
         params["caregiving_type"] = caregiving_type.value
 
     if city:
-        query += " AND u.city ILIKE :city"
+        query += " AND u.city LIKE :city"
         params["city"] = f"%{city}%"
 
     if gender:
@@ -143,7 +144,7 @@ def get_caregiver_profile(
             u.profile_description,
             u.updated_at
         FROM CAREGIVER c
-        JOIN "USER" u ON c.caregiver_user_id = u.user_id
+        JOIN USER u ON c.caregiver_user_id = u.user_id
         WHERE c.caregiver_user_id = :caregiver_id
     """
 
@@ -246,7 +247,7 @@ def update_caregiver_profile(
     # Update user table if there are changes
     if user_updates:
         update_user_query = f"""
-            UPDATE "USER" 
+            UPDATE USER 
             SET {", ".join(user_updates)}
             WHERE user_id = :user_id
         """
@@ -298,8 +299,8 @@ def get_my_job_applications(
             u.city
         FROM JOB_APPLICATION ja
         JOIN JOB j ON ja.job_id = j.job_id
-        JOIN "MEMBER" m ON j.member_user_id = m.member_user_id
-        JOIN "USER" u ON m.member_user_id = u.user_id
+        JOIN MEMBER m ON j.member_user_id = m.member_user_id
+        JOIN USER u ON m.member_user_id = u.user_id
         WHERE ja.caregiver_user_id = :caregiver_id
         ORDER BY ja.date_applied DESC
     """
@@ -361,7 +362,7 @@ def get_my_appointments(
             u.email,
             u.city
         FROM APPOINTMENT a
-        JOIN "USER" u ON a.member_user_id = u.user_id
+        JOIN USER u ON a.member_user_id = u.user_id
         WHERE a.caregiver_user_id = :caregiver_id
     """
 
@@ -418,7 +419,7 @@ def create_job(
     """
     # Check if member exists
     check_query = text("""
-        SELECT member_user_id FROM "MEMBER" WHERE member_user_id = :member_user_id
+        SELECT member_user_id FROM MEMBER WHERE member_user_id = :member_user_id
     """)
     result = db.execute(check_query, {"member_user_id": member_user_id})
     if not result.fetchone():
@@ -431,18 +432,19 @@ def create_job(
         # Insert new job
         insert_query = text("""
             INSERT INTO job (member_user_id, required_caregiving_type, other_requirements, date_posted)
-            VALUES (:member_user_id, :caregiving_type, :other_requirements, CURRENT_DATE)
-            RETURNING job_id
+            VALUES (:member_user_id, :caregiving_type, :other_requirements, CURDATE())
         """)
 
-        result = db.execute(insert_query, {
+        db.execute(insert_query, {
             "member_user_id": member_user_id,
             "caregiving_type": job_data.required_caregiving_type.value,
             "other_requirements": job_data.other_requirements
         })
-
-        job_id = result.fetchone()[0]
         db.commit()
+
+        # Get the last inserted ID
+        result = db.execute(text("SELECT LAST_INSERT_ID()"))
+        job_id = result.fetchone()[0]
 
         # Fetch and return the created job
         return get_job_by_id(job_id, db)
@@ -461,6 +463,8 @@ def search_jobs(
         city: Optional[str] = Query(None, description="Filter by city"),
         date_from: Optional[date] = Query(None, description="Filter jobs posted from this date"),
         date_to: Optional[date] = Query(None, description="Filter jobs posted until this date"),
+        limit: int = Query(100, description="Number of results to return"),
+        offset: int = Query(0, description="Number of results to skip"),
         db=Depends(get_db)
 ):
     """
@@ -468,14 +472,14 @@ def search_jobs(
     """
     # Build WHERE clause dynamically
     where_clauses = []
-    params = {}
+    params = {"limit": limit, "offset": offset}
 
     if caregiving_type:
         where_clauses.append("j.required_caregiving_type = :caregiving_type")
         params['caregiving_type'] = caregiving_type.value
 
     if city:
-        where_clauses.append("u.city ILIKE :city")
+        where_clauses.append("u.city LIKE :city")
         params['city'] = f"%{city}%"
 
     if date_from:
@@ -498,7 +502,7 @@ def search_jobs(
             u.city as member_city
         FROM job j
         JOIN member m ON j.member_user_id = m.member_user_id
-        JOIN "user" u ON m.member_user_id = u.user_id
+        JOIN user u ON m.member_user_id = u.user_id
         {where_sql}
         ORDER BY j.date_posted DESC
         LIMIT :limit OFFSET :offset
@@ -531,13 +535,13 @@ def get_job_by_id(
             j.required_caregiving_type,
             j.other_requirements,
             j.date_posted,
-            u.given_name || ' ' || u.surname as member_name,
+            CONCAT(u.given_name, ' ', u.surname) as member_name,
             u.city as member_city,
             u.email as member_email,
             u.phone_number as member_phone
         FROM job j
-        JOIN "MEMBER" m ON j.member_user_id = m.member_user_id
-        JOIN "USER" u ON m.member_user_id = u.user_id
+        JOIN MEMBER m ON j.member_user_id = m.member_user_id
+        JOIN USER u ON m.member_user_id = u.user_id
         WHERE j.job_id = :job_id
     """)
 
@@ -684,7 +688,7 @@ def get_my_posted_jobs(
     """
     # Check if member exists
     check_query = text("""
-        SELECT member_user_id FROM "MEMBER" WHERE member_user_id = :member_user_id
+        SELECT member_user_id FROM MEMBER WHERE member_user_id = :member_user_id
     """)
     result = db.execute(check_query, {"member_user_id": member_user_id})
     if not result.fetchone():
@@ -700,13 +704,13 @@ def get_my_posted_jobs(
             j.required_caregiving_type,
             j.other_requirements,
             j.date_posted,
-            u.given_name || ' ' || u.surname as member_name,
+            CONCAT(u.given_name, ' ', u.surname) as member_name,
             u.city as member_city,
             u.email as member_email,
             u.phone_number as member_phone
         FROM job j
-        JOIN "MEMBER" m ON j.member_user_id = m.member_user_id
-        JOIN "USER" u ON m.member_user_id = u.user_id
+        JOIN MEMBER m ON j.member_user_id = m.member_user_id
+        JOIN USER u ON m.member_user_id = u.user_id
         WHERE j.member_user_id = :member_user_id
         ORDER BY j.date_posted DESC
     """)
@@ -746,7 +750,7 @@ def apply_to_job(
 
     # Check if caregiver exists
     caregiver_check_query = text("""
-        SELECT caregiver_user_id FROM "CAREGIVER" WHERE caregiver_user_id = :caregiver_user_id
+        SELECT caregiver_user_id FROM CAREGIVER WHERE caregiver_user_id = :caregiver_user_id
     """)
     result = db.execute(caregiver_check_query, {"caregiver_user_id": caregiver_user_id})
     if not result.fetchone():
@@ -775,7 +779,7 @@ def apply_to_job(
         # Insert application
         insert_query = text("""
             INSERT INTO job_application (caregiver_user_id, job_id, date_applied)
-            VALUES (:caregiver_user_id, :job_id, CURRENT_DATE)
+            VALUES (:caregiver_user_id, :job_id, CURDATE())
         """)
 
         db.execute(insert_query, {
@@ -886,7 +890,7 @@ def get_job_applications(
             ja.date_applied
         FROM job_application ja
         JOIN caregiver c ON ja.caregiver_user_id = c.caregiver_user_id
-        JOIN "USER" u ON c.caregiver_user_id = u.user_id
+        JOIN USER u ON c.caregiver_user_id = u.user_id
         WHERE ja.job_id = :job_id
         ORDER BY ja.date_applied DESC
     """)
@@ -904,15 +908,197 @@ def get_job_applications(
     return applicants
 
 
-# Include job router in the main app
+application_router = APIRouter(prefix="/api", tags=["applications"])
+
+
+@application_router.post("/jobs/{job_id}/apply", status_code=status.HTTP_201_CREATED)
+def apply_to_job_v2(
+        job_id: int,
+        caregiver_user_id: int,
+        db=Depends(get_db)
+):
+    """
+    Apply to a job as a caregiver
+    """
+    # Check if job exists
+    job_check_query = text("""
+        SELECT job_id FROM job WHERE job_id = :job_id
+    """)
+    result = db.execute(job_check_query, {"job_id": job_id})
+    if not result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+
+    # Check if caregiver exists
+    caregiver_check_query = text("""
+        SELECT caregiver_user_id FROM caregiver WHERE caregiver_user_id = :caregiver_user_id
+    """)
+    result = db.execute(caregiver_check_query, {"caregiver_user_id": caregiver_user_id})
+    if not result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Caregiver not found"
+        )
+
+    # Check if already applied
+    check_application_query = text("""
+        SELECT caregiver_user_id FROM job_application 
+        WHERE job_id = :job_id AND caregiver_user_id = :caregiver_user_id
+    """)
+    result = db.execute(check_application_query, {
+        "job_id": job_id,
+        "caregiver_user_id": caregiver_user_id
+    })
+
+    if result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You have already applied to this job"
+        )
+
+    try:
+        # Insert application
+        insert_query = text("""
+            INSERT INTO job_application (caregiver_user_id, job_id, date_applied)
+            VALUES (:caregiver_user_id, :job_id, CURDATE())
+        """)
+
+        db.execute(insert_query, {
+            "caregiver_user_id": caregiver_user_id,
+            "job_id": job_id
+        })
+        db.commit()
+
+        return {
+            "message": "Application submitted successfully",
+            "job_id": job_id,
+            "caregiver_user_id": caregiver_user_id
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error submitting application: {str(e)}"
+        )
+
+
+@application_router.delete("/jobs/{job_id}/apply", status_code=status.HTTP_204_NO_CONTENT)
+def withdraw_application_v2(
+        job_id: int,
+        caregiver_user_id: int,
+        db=Depends(get_db)
+):
+    """
+    Withdraw an application from a job
+    """
+    # Check if application exists
+    check_query = text("""
+        SELECT caregiver_user_id FROM job_application 
+        WHERE job_id = :job_id AND caregiver_user_id = :caregiver_user_id
+    """)
+    result = db.execute(check_query, {
+        "job_id": job_id,
+        "caregiver_user_id": caregiver_user_id
+    })
+
+    if not result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found"
+        )
+
+    try:
+        # Delete application
+        delete_query = text("""
+            DELETE FROM job_application 
+            WHERE job_id = :job_id AND caregiver_user_id = :caregiver_user_id
+        """)
+
+        db.execute(delete_query, {
+            "job_id": job_id,
+            "caregiver_user_id": caregiver_user_id
+        })
+        db.commit()
+
+        return None
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error withdrawing application: {str(e)}"
+        )
+
+
+@application_router.get("/applications/{caregiver_user_id}/{job_id}", response_model=JobApplicationDetailResponse)
+def get_application_details(
+        caregiver_user_id: int,
+        job_id: int,
+        db=Depends(get_db)
+):
+    """
+    Get details of a specific job application
+    """
+    query = text("""
+        SELECT 
+            ja.caregiver_user_id,
+            ja.job_id,
+            ja.date_applied,
+            j.required_caregiving_type,
+            j.other_requirements,
+            j.date_posted,
+            j.member_user_id,
+            CONCAT(mu.given_name, ' ', mu.surname) as member_name,
+            mu.city as member_city,
+            mu.email as member_email,
+            mu.phone_number as member_phone,
+            CONCAT(cu.given_name, ' ', cu.surname) as caregiver_name,
+            cu.email as caregiver_email,
+            cu.phone_number as caregiver_phone,
+            cu.city as caregiver_city,
+            c.hourly_rate
+        FROM job_application ja
+        JOIN job j ON ja.job_id = j.job_id
+        JOIN member m ON j.member_user_id = m.member_user_id
+        JOIN user mu ON m.member_user_id = mu.user_id
+        JOIN caregiver c ON ja.caregiver_user_id = c.caregiver_user_id
+        JOIN user cu ON c.caregiver_user_id = cu.user_id
+        WHERE ja.caregiver_user_id = :caregiver_user_id 
+        AND ja.job_id = :job_id
+    """)
+
+    result = db.execute(query, {
+        "caregiver_user_id": caregiver_user_id,
+        "job_id": job_id
+    })
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found"
+        )
+
+    row_dict = row_to_dict(row)
+    return JobApplicationDetailResponse(**row_dict)
+
+
+
+# Register routers
+app.include_router(caregiver_router)
 app.include_router(job_router)
+app.include_router(application_router)
+
+
+@app.get("/")
+def read_root():
+    return {"message": "Caregiver App API - MySQL Version"}
 
 
 
-# POST   /api/jobs/{job_id}/apply              # Apply to a job
-# DELETE /api/jobs/{job_id}/apply              # Withdraw application
-# GET    /api/applications/{application_id}    # Get application details
-#
 # POST   /api/appointments                     # Create appointment (by member)
 # GET    /api/appointments/{appointment_id}    # Get appointment details
 # PUT    /api/appointments/{appointment_id}    # Update appointment
@@ -923,6 +1109,8 @@ app.include_router(job_router)
 
 
 app.include_router(caregiver_router)
+app.include_router(job_router)
+app.include_router(application_router)
 
 @app.get("/")
 def root():

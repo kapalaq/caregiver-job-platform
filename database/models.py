@@ -175,3 +175,25 @@ class ApplicantResponse(BaseModel):
     photo: Optional[str] = None
     profile_description: Optional[str] = None
     date_applied: date
+
+# Job Application
+class JobApplicationDetailResponse(BaseModel):
+    caregiver_user_id: int
+    job_id: int
+    date_applied: date
+    # Job details
+    required_caregiving_type: str
+    other_requirements: Optional[str] = None
+    date_posted: date
+    # Member details
+    member_user_id: int
+    member_name: str
+    member_city: str
+    member_email: str
+    member_phone: str
+    # Caregiver details
+    caregiver_name: str
+    caregiver_email: str
+    caregiver_phone: str
+    caregiver_city: str
+    hourly_rate: Decimal
