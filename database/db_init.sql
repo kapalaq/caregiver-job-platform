@@ -68,7 +68,7 @@ CREATE TABLE ADDRESS (
     town VARCHAR(100) NOT NULL,
 
     CONSTRAINT fk_address_member FOREIGN KEY (member_user_id)
-        REFERENCES MEMBER(member_user_id) ON DELETE CASCADE,
+        REFERENCES MEMBER(member_user_id) ON DELETE CASCADE
 );
 
 
@@ -78,7 +78,7 @@ CREATE TABLE JOB (
     member_user_id INT NOT NULL,
     required_caregiving_type ENUM('babysitter', 'caregiver for elderly', 'playmate for children') NOT NULL,
     other_requirements TEXT,
-    date_posted DATE NOT NULL DEFAULT CURRENT_DATE,
+    date_posted DATE NOT NULL,
     status ENUM('open', 'closed') DEFAULT 'open',
 
     dependent_age INT,
@@ -99,7 +99,7 @@ CREATE TABLE JOB_APPLICATION (
     application_id INT PRIMARY KEY AUTO_INCREMENT,
     caregiver_user_id INT NOT NULL,
     job_id INT NOT NULL,
-    date_applied DATE NOT NULL DEFAULT CURRENT_DATE,
+    date_applied DATE NOT NULL,
     cover_letter TEXT,
     application_status ENUM('pending', 'reviewed', 'accepted', 'rejected') DEFAULT 'pending',
 
@@ -131,10 +131,6 @@ CREATE TABLE APPOINTMENT (
         REFERENCES MEMBER(member_user_id) ON DELETE CASCADE,
 
     CONSTRAINT check_work_hours CHECK (work_hours > 0 AND work_hours <= 24),
-    CONSTRAINT check_appointment_date CHECK (
-            appointment_date > CURRENT_DATE OR
-            (appointment_date = CURRENT_DATE and appointment_time = CURRENT_TIME)
-        ),
     CONSTRAINT check_total_cost CHECK (total_cost >= 0)
 );
 
@@ -181,7 +177,9 @@ INSERT INTO USER (email, given_name, surname, city, phone_number, profile_descri
 ('nurzhan.alimzhanov@gmail.com', 'Nurzhan', 'Alimzhanov', 'Kostanay', '77089374652', '', 'vlcvbk231'),
 ('zhanna.serikova@gmail.com', 'Zhanna', 'Serikova', 'Astana', '77778392847', '', 'JKHt9034'),
 ('arman.tulegenov@gmail.com', 'Arman', 'Tulegenov', 'Kostanay', '77716485927', '', 'iHop83459'),
-('gaukhar.mukhanova@gmail.com', 'Gaukhar', 'Mukhanova', 'Taraz', '77773829561', '', '1234598iasd');
+('gaukhar.mukhanova@gmail.com', 'Gaukhar', 'Mukhanova', 'Taraz', '77773829561', '', '1234598iasd'),
+('arman.armanov@gmail.com', 'Arman', 'Armanov', 'Almaty', '77712345678', '', 'pass123'),
+('amina.aminova@gmail.com', 'Amina', 'Aminova', 'Astana', '77771234567', '', 'amina2024');
 
 -- User Caregivers Insert
 INSERT INTO USER (email, given_name, surname, city, phone_number, profile_description, password) VALUES
@@ -212,33 +210,37 @@ INSERT INTO CAREGIVER (caregiver_user_id, photo, gender, caregiving_type, hourly
 -- Members Insert
 INSERT INTO MEMBER (member_user_id, house_rules, dependent_description) VALUES
 (1, 'No smoking. Please remove shoes at the door. Be punctual.', 'I have a 5-year-old son who loves painting and building blocks. He is very energetic and needs constant attention.'),
-(2, 'My mother has limited mobility. Please help with meal preparation and medication reminders.', 'My mother is 78 years old, has diabetes, and needs help with daily activities.'),
+(2, 'No pets. My mother has limited mobility. Please help with meal preparation and medication reminders.', 'My mother is 78 years old, has diabetes, and needs help with daily activities.'),
 (3, 'Our son is shy at first but warms up quickly. He loves outdoor activities.', '6-year-old boy who enjoys sports, especially soccer. Needs a playmate 3 times a week.'),
 (4, 'Pet-friendly home. We have a small dog. Flexible schedule needed.', 'Twin girls, age 3, very active and playful.'),
 (5, 'Clean environment required. No pets allowed. Prefer experienced caregivers.', 'My father is 82 years old, recovering from surgery. Needs assistance with mobility and medication.'),
 (6, 'Quiet household. Educational activities encouraged. Healthy meals only.', '7-year-old daughter who loves reading and drawing. Needs help with homework and creative play.'),
 (7, 'No alcohol or smoking. Must be comfortable with cats. Evening availability preferred.', 'My grandmother is 85, has mild dementia. Needs companionship and help with daily routines.'),
-(8, 'Respectful and kind attitude required. Open communication is important.', '4-year-old boy with high energy. Loves dinosaurs and outdoor adventures.'),
+(8, 'Respectful and kind attitude required. No pets. Open communication is important.', '4-year-old boy with high energy. Loves dinosaurs and outdoor adventures.'),
 (9, 'Punctuality is essential. CPR certification preferred. Non-smoking household.', 'Twin boys, age 8, very active in sports. Need supervision after school.'),
-(10, 'Flexible schedule. Must be patient and loving. We value reliability.', 'My mother is 75, uses a wheelchair. Needs help with daily care and companionship.');
+(10, 'Flexible schedule. Must be patient and loving. We value reliability.', 'My mother is 75, uses a wheelchair. Needs help with daily care and companionship.'),
+(11, 'No smoking. Quiet environment preferred.', 'Need caregiver for elderly father with mobility issues.'),
+(12, 'No smoking. Pet-friendly home.', 'Looking for caregiver for my 3-year-old daughter who loves music and dancing.');
 
 -- Address Insert
-INSERT INTO ADDRESS (member_user_id, house_number, street, town, is_primary) VALUES
-(1, '123', 'Abay Avenue', 'Medeu District', TRUE),
-(2, '456', 'Kabanbay Batyr', 'Yesil District', TRUE),
-(3, '789', 'Tole Bi Street', 'Central District', TRUE),
-(4, '321', 'Dostyk Avenue', 'Almaly District', TRUE),
-(5, '654', 'Mangilik El Avenue', 'Saryarka District', TRUE),
-(6, '147', 'Zheltoksan Street', 'Auezov District', TRUE),
-(7, '258', 'Al-Farabi Avenue', 'Bostandyk District', TRUE),
-(8, '369', 'Respublika Avenue', 'Yesil District', TRUE),
-(9, '741', 'Abylai Khan Street', 'Central District', TRUE),
-(10, '852', 'Nazarbayev Avenue', 'Central District', TRUE);
+INSERT INTO ADDRESS (member_user_id, house_number, street, town) VALUES
+(1, '123', 'Abay Avenue', 'Medeu District'),
+(2, '456', 'Kabanbay Batyr', 'Yesil District'),
+(3, '789', 'Tole Bi Street', 'Central District'),
+(4, '321', 'Dostyk Avenue', 'Almaly District'),
+(5, '654', 'Mangilik El Avenue', 'Saryarka District'),
+(6, '147', 'Zheltoksan Street', 'Auezov District'),
+(7, '258', 'Al-Farabi Avenue', 'Bostandyk District'),
+(8, '369', 'Respublika Avenue', 'Yesil District'),
+(9, '741', 'Abylai Khan Street', 'Central District'),
+(10, '852', 'Nazarbayev Avenue', 'Central District'),
+(11, '999', 'Samal Street', 'Almaly District'),
+(12, '555', 'Turan Avenue', 'Yesil District');
 
 -- Job Insert
-INSERT INTO JOB (member_user_id, required_caregiving_type, other_requirements, date_posted, status, dependent_age, preferred_time_start, preferred_time_end, frequency, duration_weeks) VALUES
-(1, 'babysitter', 'Must have experience with active children. CPR certification preferred.', '2025-11-15', 'open', 5, '09:00:00', '15:00:00', 'daily', 12),
-(2, 'caregiver for elderly', 'Must be patient and have experience with elderly care. Medical background is a plus.', '2025-11-18', 'open', 78, '08:00:00', '12:00:00', 'daily', 8),
+INSERT INTO JOB (member_user_id, required_caregiving_type, other_requirements, date_posted, status, dependent_age, preferred_time_start, preferred_time_end, frequency, duration) VALUES
+(1, 'babysitter', 'Must have experience with active children. CPR certification preferred. Looking for someone soft-spoken.', '2025-11-15', 'open', 5, '09:00:00', '15:00:00', 'daily', 12),
+(2, 'caregiver for elderly', 'Must be patient and have experience with elderly care. Medical background is a plus. Prefer soft-spoken caregiver.', '2025-11-18', 'open', 78, '08:00:00', '12:00:00', 'daily', 8),
 (3, 'playmate for children', 'Looking for someone to engage my son in outdoor activities.', '2025-11-20', 'open', 6, '15:00:00', '18:00:00', 'weekly', 4),
 (4, 'babysitter', 'Need help with twin girls on weekends. Must be energetic!', '2025-11-19', 'open', 3, '10:00:00', '16:00:00', 'weekends only', 8),
 (5, 'caregiver for elderly', 'Seeking experienced caregiver for post-surgery care. Must be reliable and compassionate.', '2025-11-16', 'open', 82, '07:00:00', '13:00:00', 'daily', 6),
@@ -246,7 +248,9 @@ INSERT INTO JOB (member_user_id, required_caregiving_type, other_requirements, d
 (7, 'caregiver for elderly', 'Looking for patient caregiver for grandmother with mild dementia. Must be understanding.', '2025-11-17', 'open', 85, '16:00:00', '20:00:00', 'daily', 12),
 (8, 'playmate for children', 'Need energetic person to supervise active 4-year-old. Outdoor activities encouraged.', '2025-11-22', 'open', 4, '13:00:00', '17:00:00', 'weekly', 6),
 (9, 'babysitter', 'Looking for reliable caregiver for twin boys after school. Sports experience preferred.', '2025-11-14', 'open', 8, '15:00:00', '19:00:00', 'daily', 16),
-(10, 'caregiver for elderly', 'Seeking compassionate caregiver for mother in wheelchair. Patience and experience required.', '2025-11-13', 'open', 75, '10:00:00', '14:00:00', 'daily', 20);
+(10, 'caregiver for elderly', 'Seeking compassionate caregiver for mother in wheelchair. Patience and experience required.', '2025-11-13', 'open', 75, '10:00:00', '14:00:00', 'daily', 20),
+(12, 'babysitter', 'Must love music and creative activities. Experience with toddlers required.', '2025-11-23', 'open', 3, '10:00:00', '14:00:00', 'daily', 8),
+(12, 'playmate for children', 'Looking for energetic person to engage my daughter in educational play.', '2025-11-23', 'open', 3, '15:00:00', '18:00:00', 'weekly', 6);
 
 -- Job Application Insert
 INSERT INTO JOB_APPLICATION (caregiver_user_id, job_id, date_applied, cover_letter, application_status) VALUES
@@ -284,16 +288,16 @@ INSERT INTO JOB_APPLICATION (caregiver_user_id, job_id, date_applied, cover_lett
 
 -- Appointment Insert
 INSERT INTO APPOINTMENT (caregiver_user_id, member_user_id, appointment_date, appointment_time, work_hours, status, total_cost, notes) VALUES
-(11, 1, '2025-11-25', '09:00:00', 6.00, 'confirmed', 15000.00, 'First day trial with painting and building activities'),
-(12, 2, '2025-11-26', '08:00:00', 4.00, 'confirmed', 12000.00, 'Morning care including medication reminders and breakfast'),
-(13, 3, '2025-11-27', '15:00:00', 3.00, 'confirmed', 6000.00, 'Soccer practice at the park'),
-(14, 4, '2025-11-28', '10:00:00', 6.00, 'confirmed', 16800.00, 'Weekend childcare for twins'),
-(15, 5, '2025-11-29', '07:00:00', 6.00, 'pending', 19200.00, 'Post-surgery care and mobility assistance'),
-(16, 6, '2025-11-30', '14:00:00', 4.00, 'confirmed', 10400.00, 'After-school homework help and creative activities'),
-(17, 8, '2025-12-01', '13:00:00', 4.00, 'pending', 8800.00, 'Outdoor playtime and dinosaur adventures'),
-(18, 7, '2025-12-02', '16:00:00', 4.00, 'confirmed', 14000.00, 'Evening care for grandmother with dementia'),
-(19, 9, '2025-12-03', '15:00:00', 4.00, 'confirmed', 9600.00, 'After-school supervision for twin boys'),
-(20, 3, '2025-12-04', '15:00:00', 3.00, 'pending', 6900.00, 'Outdoor sports and play session');
+(11, 1, '2024-11-25', '09:00:00', 6.00, 'confirmed', 15000.00, 'First day trial with painting and building activities'),
+(12, 2, '2024-11-26', '08:00:00', 4.00, 'confirmed', 12000.00, 'Morning care including medication reminders and breakfast'),
+(13, 3, '2024-11-27', '15:00:00', 3.00, 'confirmed', 6000.00, 'Soccer practice at the park'),
+(14, 4, '2024-11-28', '10:00:00', 6.00, 'confirmed', 16800.00, 'Weekend childcare for twins'),
+(15, 5, '2024-11-29', '07:00:00', 6.00, 'pending', 19200.00, 'Post-surgery care and mobility assistance'),
+(16, 6, '2024-11-30', '14:00:00', 4.00, 'confirmed', 10400.00, 'After-school homework help and creative activities'),
+(17, 8, '2024-12-01', '13:00:00', 4.00, 'pending', 8800.00, 'Outdoor playtime and dinosaur adventures'),
+(18, 7, '2024-12-02', '16:00:00', 4.00, 'confirmed', 14000.00, 'Evening care for grandmother with dementia'),
+(19, 9, '2024-12-03', '15:00:00', 4.00, 'confirmed', 9600.00, 'After-school supervision for twin boys'),
+(20, 3, '2024-12-04', '15:00:00', 3.00, 'pending', 6900.00, 'Outdoor sports and play session');
 
 
 -- Views
@@ -311,13 +315,13 @@ SELECT
     c.gender,
     c.caregiving_type,
     c.hourly_rate,
-    c.is_available,
+    c.is_active,
     c.rating,
     c.total_reviews
 FROM USER u
 INNER JOIN CAREGIVER c
 ON u.user_id = c.caregiver_user_id
-WHERE c.is_active;
+WHERE c.is_active = TRUE;
 
 -- Members All Info
 CREATE OR REPLACE VIEW vw_member_profiles AS
@@ -366,6 +370,7 @@ WHERE j.status = 'open';
 
 -- Procedures
 -- Create Appointment
+DELIMITER //
 CREATE PROCEDURE sp_create_appointment(
     IN p_caregiver_id INT,
     IN p_member_id INT,
@@ -376,8 +381,6 @@ CREATE PROCEDURE sp_create_appointment(
     OUT p_appointment_id INT,
     OUT p_total_cost DECIMAL(10,2)
 )
-LANGUAGE plpgsql
-AS $$
 BEGIN
     DECLARE v_hourly_rate DECIMAL(10,2);
 
@@ -408,22 +411,25 @@ BEGIN
     );
 
     SET p_appointment_id = LAST_INSERT_ID();
-END;
-$$;
+END//
+DELIMITER ;
 
 
 -- Triggers
 -- Calculate appointment cost before insert
+DELIMITER //
 CREATE TRIGGER trg_calculate_appointment_cost
 BEFORE INSERT ON APPOINTMENT
 FOR EACH ROW
 BEGIN
-DECLARE temp_hourly_rate DECIMAL(10,2);
+    DECLARE temp_hourly_rate DECIMAL(10,2);
 
-SELECT hourly_rate INTO temp_hourly_rate
-FROM CAREGIVER
-WHERE caregiver_user_id = NEW.caregiver_user_id;
+    SELECT hourly_rate INTO temp_hourly_rate
+    FROM CAREGIVER
+    WHERE caregiver_user_id = NEW.caregiver_user_id;
 
-IF NEW.total_cost IS NULL THEN
-    SET NEW.total_cost = v_hourly_rate * NEW.work_hours;
-END IF;
+    IF NEW.total_cost IS NULL THEN
+        SET NEW.total_cost = temp_hourly_rate * NEW.work_hours;
+    END IF;
+END//
+DELIMITER ;
